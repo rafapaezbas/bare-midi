@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier . --write"
   },
   "keywords": [],
   "author": "",
@@ -11,6 +12,8 @@
   "description": "",
   "devDependencies": {
     "cmake-bare": "^1.6.5",
-    "cmake-ports": "^1.5.9"
+    "cmake-ports": "^1.5.9",
+    "prettier": "^3.6.2",
+    "prettier-config-standard": "^7.0.0"
   }
 }
