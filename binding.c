@@ -140,6 +140,10 @@ bare_midi_write_sys_ex(js_env_t *env, js_callback_info_t *info) {
   assert(err == 0);
 
   return result;
+}
+
+static js_value_t *
+bare_midi_exports(js_env_t *env, js_value_t *exports) {
   int err;
   js_value_t *val;
 
