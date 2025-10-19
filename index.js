@@ -1,6 +1,14 @@
 const binding = require('./binding')
 
 binding.initialize()
-console.log('count devices', binding.countDevices())
-console.log('device info 0:', binding.getDeviceInfo(0))
-binding.terminate()
+const stream = binding.openOutput(2)
+let i = 10
+setInterval(() => {
+	binding.message(stream, i)
+	if (i > 111) {
+		binding.terminate()
+		Bare.exit()
+	}
+	i++
+}, 100)
+
