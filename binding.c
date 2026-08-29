@@ -128,11 +128,23 @@ bare_midi_write_sys_ex(js_env_t *env, js_callback_info_t *info) {
   err = js_get_value_bigint_uint64(env, argv[0], &stream, &lossless);
   assert(err == 0);
 
-  uint32_t note;
-  err = js_get_value_uint32(env, argv[1], &note);
+  uint32_t msg_len;
+  err = js_get_array_length(env, argv[1], &msg_len);
   assert(err == 0);
 
-  uint8_t msg[] = {240, 0, 32, 41, 2, 24, 10, note, 50, 247}; // TODO move this
+  uint8_t msg[msg_len];
+  for (uint32_t i = 0; i < msg_len; i++) {
+    js_value_t *value;
+    err = js_get_element(env, argv[1], i, &value);
+    assert(err == 0);
+
+    uint32_t byte;
+    err = js_get_value_uint32(env, value, &byte);
+    assert(err == 0);
+
+    msg[i] = (uint8_t) byte;
+  }
+
   Pm_WriteSysEx((PmStream *) stream, 0, msg);
 
   js_value_t *result;
