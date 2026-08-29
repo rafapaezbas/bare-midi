@@ -112,6 +112,92 @@ bare_midi_open_output(js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
+bare_midi_open_input(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  uint32_t index;
+  err = js_get_value_uint32(env, argv[0], &index);
+  assert(err == 0);
+
+  PmStream *stream;
+  Pm_OpenInput(&stream, index, NULL, 512, NULL, NULL);
+
+  js_value_t *obj;
+  err = js_create_object(env, &obj);
+  assert(err == 0);
+
+  uintptr_t addr = (uintptr_t) stream;
+  js_value_t *result;
+  err = js_create_bigint_uint64(env, addr, &result);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
+bare_midi_read_message(js_env_t *env, js_callback_info_t *info) {
+  int err;
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  uintptr_t stream;
+  bool lossless = true;
+  err = js_get_value_bigint_uint64(env, argv[0], &stream, &lossless);
+  assert(err == 0);
+
+  PmEvent event;
+  int32_t count = Pm_Read((PmStream *) stream, &event, 1); // Read one event
+  int32_t message[3] = {0, 0, 0}; // no-message
+
+  if (count > 0) {
+    message[0] = Pm_MessageStatus(event.message);
+    message[1] = Pm_MessageData1(event.message);
+    message[2] = Pm_MessageData2(event.message);
+  }
+
+  js_value_t *result;
+  err = js_create_array_with_length(env, 3, &result);
+  assert(err == 0);
+
+  {
+    js_value_t *v;
+    err = js_create_uint32(env, message[0], &v);
+    assert(err == 0);
+    err = js_set_element(env, result, 0, v);
+    assert(err == 0);
+  }
+  {
+    js_value_t *v;
+    err = js_create_uint32(env, message[1], &v);
+    assert(err == 0);
+    err = js_set_element(env, result, 1, v);
+    assert(err == 0);
+  }
+  {
+    js_value_t *v;
+    err = js_create_uint32(env, message[2], &v);
+    assert(err == 0);
+    err = js_set_element(env, result, 2, v);
+    assert(err == 0);
+  }
+
+  return result;
+}
+
+static js_value_t *
 bare_midi_write_sys_ex(js_env_t *env, js_callback_info_t *info) {
   int err;
 
@@ -182,6 +268,16 @@ bare_midi_exports(js_env_t *env, js_value_t *exports) {
   err = js_create_function(env, "openOutput", -1, bare_midi_open_output, NULL, &val);
   assert(err == 0);
   err = js_set_named_property(env, exports, "openOutput", val);
+  assert(err == 0);
+
+  err = js_create_function(env, "openInput", -1, bare_midi_open_input, NULL, &val);
+  assert(err == 0);
+  err = js_set_named_property(env, exports, "openInput", val);
+  assert(err == 0);
+
+  err = js_create_function(env, "readMessage", -1, bare_midi_read_message, NULL, &val);
+  assert(err == 0);
+  err = js_set_named_property(env, exports, "readMessage", val);
   assert(err == 0);
 
   err = js_create_function(env, "writeSysEx", -1, bare_midi_write_sys_ex, NULL, &val);

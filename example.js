@@ -1,14 +1,15 @@
-const binding = require('./binding')
+const { MidiInput, MidiOutput } = require('./binding')
 
-binding.initialize()
-const stream = binding.openOutput(3)
+const input = new MidiInput(1)
+const output = new MidiOutput(3)
+input.on('message', (message) => console.log('new message', message))
+
 let i = 10
 
 setInterval(() => {
   const msg = [240, 0, 32, 41, 2, 24, 10, i, 50, 247]
-  binding.writeSysEx(stream, msg)
+  output.writeSysEx(msg)
   if (i > 111) {
-    binding.terminate()
     Bare.exit()
   }
   i++
