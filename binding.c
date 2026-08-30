@@ -158,40 +158,29 @@ bare_midi_read_message(js_env_t *env, js_callback_info_t *info) {
   err = js_get_value_bigint_uint64(env, argv[0], &stream, &lossless);
   assert(err == 0);
 
-  PmEvent event;
-  int32_t count = Pm_Read((PmStream *) stream, &event, 1); // Read one event
-  int32_t message[3] = {0, 0, 0}; // no-message
+  PmEvent events[64];
+  int32_t count = Pm_Read((PmStream *) stream, events, 64); // Read 64 events max
 
-  if (count > 0) {
-    message[0] = Pm_MessageStatus(event.message);
-    message[1] = Pm_MessageData1(event.message);
-    message[2] = Pm_MessageData2(event.message);
+  if (count < 0) {
+    err = js_throw_error(env, NULL, Pm_GetErrorText((PmError) count));
+    assert(err == 0);
+    return NULL;
   }
 
   js_value_t *result;
-  err = js_create_array_with_length(env, 3, &result);
+  err = js_create_array_with_length(env, count * 4, &result);
   assert(err == 0);
 
-  {
-    js_value_t *v;
-    err = js_create_uint32(env, message[0], &v);
-    assert(err == 0);
-    err = js_set_element(env, result, 0, v);
-    assert(err == 0);
-  }
-  {
-    js_value_t *v;
-    err = js_create_uint32(env, message[1], &v);
-    assert(err == 0);
-    err = js_set_element(env, result, 1, v);
-    assert(err == 0);
-  }
-  {
-    js_value_t *v;
-    err = js_create_uint32(env, message[2], &v);
-    assert(err == 0);
-    err = js_set_element(env, result, 2, v);
-    assert(err == 0);
+  for (int32_t i = 0; i < count; i++) {
+    uint32_t m = (uint32_t) events[i].message;
+
+    for (uint32_t j = 0; j < 4; j++) {
+      js_value_t *v;
+      err = js_create_uint32(env, (m >> (j * 8)) & 0xff, &v);
+      assert(err == 0);
+      err = js_set_element(env, result, i * 4 + j, v);
+      assert(err == 0);
+    }
   }
 
   return result;
